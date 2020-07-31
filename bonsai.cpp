@@ -274,6 +274,8 @@ namespace Bonsai {
         return std::string(std::begin(cmd), std::end(cmd));
     }
 
+    char lastInput = '\0';
+
     // checks whether the user inputs a command or moves cursor. if the
     // user issues a command, the command is then executed.
     void checkInput() {
@@ -296,12 +298,12 @@ namespace Bonsai {
                 break;
 
             case '.': // shortcut for moving to parent dir
-                if (getch() == '.')
+                if (lastInput == '.')
                     cd("..");
                 break;
 
             case 'd': // delete file but keep
-                if (getch() == 'd')
+                if (lastInput == 'd')
                     cd("..");
                 break;
 
@@ -328,8 +330,13 @@ namespace Bonsai {
                         system(std::string("vim " + file).c_str());
                 }
                 break;
+
+            default:
+                if (((int)input >= (int)'0' || (int)input <= (int)'9') && ((int)lastInput >= (int)'0' || (int)lastInput <= (int)'9'))
+                    int d = 0;
         }
 
+        lastInput = input;
     }
 
     // read each line from output buffer and print to screen. if the line
