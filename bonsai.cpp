@@ -397,6 +397,23 @@ namespace Bonsai {
         move(ycur, xcur);
     }
 
+    constexpr std::string welcomeASCII;
+
+    constexpr void readFile(const std::string& path) {
+        std::string line;
+        std::string output;
+
+        std::ifstream file(path.c_str());
+        if (file.is_open()) {
+            while(getline(file, line))
+                output += line;
+
+            file.close();
+        }
+
+        welcomeASCII = output;
+    }
+
     void init() {
         initscr();
         cbreak();
@@ -407,14 +424,8 @@ namespace Bonsai {
         dir = execute("pwd").at(0);
 
 #if SHOW_WELCOME == 1
-        std::string line;
-        std::ifstream file("bonsaiASCII.txt");
-        if (file.is_open()) {
-            while(getline(file, line))
-                printw(std::string(line + "\n").c_str());
-
-            file.close();
-        }
+        readFile("bonsaiASCII.txt");
+        printw(welcomeASCII.c_str());
 
         getch();
 #endif
