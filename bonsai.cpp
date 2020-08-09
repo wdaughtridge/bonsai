@@ -7,12 +7,15 @@
 #include <fstream>
 
 #define ls(arg) execute("cd " + dir + "; ls " + std::string(arg))
-#define SHOW_WELCOME 1
 
 namespace Bonsai {
-
     // current directory
     std::string dir;
+
+    // trash dir
+    std::string trashDir;
+
+    std::vector<std::string> trashedFiles;
 
     // output buffer for printing screen 
     std::vector<std::string> output;
@@ -102,6 +105,14 @@ namespace Bonsai {
         }
         else if (command.substr(0,2) == "cd") { // change directory to specified location
             cd(command.substr(2));
+        }
+        else if (command.substr(0,5) == "touch") {
+            system(std::string("touch " + dir + "/" + command.substr(command.find_first_of(' ')+1)).c_str());
+        }
+        else if (command == "pb -A") {
+            for (const auto& path : trashedFiles) {
+                system(std::string("mv ~/.Trash/" + path.substr(path.find_last_of('/')+1) + " " + path).c_str());
+            }
         }
         else if ((int)command.at(0) >= (int)'0' || (int)command.at(0) <= (int)'9') { // jump to a specific line
             int moveTo;
@@ -275,6 +286,7 @@ namespace Bonsai {
     }
 
     char lastInput = '\0';
+    std::string repeatCmd;
 
     // checks whether the user inputs a command or moves cursor. if the
     // user issues a command, the command is then executed.
@@ -298,13 +310,18 @@ namespace Bonsai {
                 break;
 
             case '.': // shortcut for moving to parent dir
-                if (lastInput == '.')
+                if (lastInput == '.') {
                     cd("..");
+                    input = '\0';
+                }
                 break;
 
-            case 'd': // delete file but keep
-                if (lastInput == 'd')
-                    cd("..");
+            case 'd': // move file to trash bin
+                if (lastInput == 'd') {
+                    system(std::string("mv " + dir + "/" + file + " " + trashDir).c_str());
+                    trashedFiles.push_back(dir + "/" + file);
+                    input = '\0';
+                }
                 break;
 
             case 'k':
@@ -323,17 +340,17 @@ namespace Bonsai {
 
             case '\n':
                 if (file != "") {
-                    std::string type = execute("file " + file).at(0);
+                    std::string type = execute("file " + dir + "/" + file).at(0);
                     if (type.find("directory") != std::string::npos)
                         cd(file);
                     else
-                        system(std::string("vim " + file).c_str());
+                        system(std::string("vim " + dir + "/" + file).c_str());
                 }
                 break;
 
             default:
                 if (((int)input >= (int)'0' || (int)input <= (int)'9') && ((int)lastInput >= (int)'0' || (int)lastInput <= (int)'9'))
-                    int d = 0;
+                    int donothing = 0;//repeatCmd += std::string(input);
         }
 
         lastInput = input;
@@ -397,21 +414,19 @@ namespace Bonsai {
         move(ycur, xcur);
     }
 
-    constexpr std::string welcomeASCII;
-
-    constexpr void readFile(const std::string& path) {
+    std::string readFile(const std::string& path) {
         std::string line;
         std::string output;
 
         std::ifstream file(path.c_str());
         if (file.is_open()) {
             while(getline(file, line))
-                output += line;
+                output += line + "\n";
 
             file.close();
         }
 
-        welcomeASCII = output;
+        return output;
     }
 
     void init() {
@@ -422,20 +437,18 @@ namespace Bonsai {
 
         getmaxyx(stdscr, height, width);
         dir = execute("pwd").at(0);
+        trashDir = "~/.Trash";
 
-#if SHOW_WELCOME == 1
-        readFile("bonsaiASCII.txt");
+        std::string welcomeASCII = readFile("bonsaiASCII.txt");
         printw(welcomeASCII.c_str());
 
         getch();
-#endif
     }
 
     void run() {
-        while (!Bonsai::shouldExit) {
-            Bonsai::newFrame();
-
-            Bonsai::checkInput();
+        while (!shouldExit) {
+            newFrame();
+            checkInput();
 
             getyx(stdscr, Bonsai::ycur, Bonsai::xcur);
         }
@@ -445,7 +458,6 @@ namespace Bonsai {
 
 int main() {
     Bonsai::init();
-
     Bonsai::run();
 
     clear();
