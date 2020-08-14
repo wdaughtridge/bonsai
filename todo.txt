@@ -1,6 +1,0 @@
-TODO:
-
-[x] fix jumping to a line and searching
-[ ] copy and delete functionality
-[ ] save place for going back in history
-[ ] save history

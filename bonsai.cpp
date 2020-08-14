@@ -80,6 +80,21 @@ namespace Bonsai {
         return outputLines;
     }
 
+    void executeTermCommand() {
+        mvaddch(height - 1, 0, '!');
+
+        // get command after bang
+        std::string command = getInput();
+
+        // change dir to current dir and execute user's command
+        system(std::string("cd " + dir + "; " + command).c_str());
+
+        // clear the line where command is output
+        move(height - 1, 0);
+        clrtoeol();
+        move(ycur, xcur);
+    }
+
     // gets the input of user after they type ':' and
     // returns the command in a string to be checked by checkInput.
     // handles when the user presses the backspace key or cancels
@@ -285,6 +300,7 @@ namespace Bonsai {
         return std::string(std::begin(cmd), std::end(cmd));
     }
 
+
     char lastInput = '\0';
     std::string repeatCmd;
 
@@ -343,10 +359,16 @@ namespace Bonsai {
                     std::string type = execute("file " + dir + "/" + file).at(0);
                     if (type.find("directory") != std::string::npos)
                         cd(file);
-                    else
-                        system(std::string("vim " + dir + "/" + file).c_str());
+                    else {
+                        std::string sessionName = execute("tmux display-message -p '#S'").at(0); // get current tmux session name
+                        system(std::string("tmux split-window -h -t " + sessionName).c_str()); // split window in tmux session
+                        system(std::string("tmux send-keys -t " + sessionName + " C-z 'nvim " + dir + "/" + file + "' Enter").c_str()); // start vim in new tmux pane
+                    }
                 }
                 break;
+
+            case '!':
+                executeTermCommand();
 
             default:
                 if (((int)input >= (int)'0' || (int)input <= (int)'9') && ((int)lastInput >= (int)'0' || (int)lastInput <= (int)'9'))
