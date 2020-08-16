@@ -50,6 +50,6 @@ namespace Bonsai {
     std::string getInput();
     std::string readFile(const std::string& path);
     std::vector<std::string> executeWithOutput(const std::string& command);
-    std::vector<std::string> ls(const std::string& arg);
+    std::vector<std::string> ls(const std::string& arg, const std::string& lsDir);
     std::vector<std::string> autoComplete(const std::string& input);
 }

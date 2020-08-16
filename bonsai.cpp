@@ -9,8 +9,13 @@ void Bonsai::cd(const std::string& path) {
 }
 
 // calls ls -[args] command and returns the output
-std::vector<std::string> Bonsai::ls(const std::string& arg) {
-    auto files = executeWithOutput("cd " + dir + "; ls " + arg);
+std::vector<std::string> Bonsai::ls(const std::string& arg, const std::string& lsDir = "") {
+    std::vector<std::string> files;
+    if (lsDir == "")
+        files = executeWithOutput("cd " + dir + "; ls " + arg);
+    else
+        files = executeWithOutput("cd " + lsDir + "; ls " + arg);
+
     files.erase(files.begin());
     return files;
 }
@@ -51,9 +56,13 @@ void Bonsai::userCommand() {
 
     // get command after bang
     std::string command = getInput();
+    std::string sessionName = executeWithOutput("tmux display-message -p '#S'").at(0); // get current tmux session name
+
+    system(std::string("tmux split-window -p 25 -t " + sessionName +
+                       " \"cd " + dir + "; " + command + "; echo '[PRESS KEY TO CONTINUE]'; read;\"").c_str()); // split window in tmux session and open file in neovim
 
     // change dir to current dir and execute user's command
-    system(std::string("cd " + dir + "; " + command).c_str());
+    //system(std::string("cd " + dir + "; " + command).c_str());
 
     // clear the line where command is output
     move(height - 1, 0);
@@ -389,6 +398,7 @@ void Bonsai::printscr() {
     
     attron(A_STANDOUT | A_BOLD);
 
+    // make sure path does wrap around weirdly
     int width = std::stoi(executeWithOutput("tmux list-panes -t bonsai -F \"#{pane_width}\"").at(0));
     if (dir.size() + 3 <= width)
         mvprintw(height - 2, 0, std::string(" > " + dir).c_str());
