@@ -1,5 +1,7 @@
 # bonsai
-Terminal (ncurses) based file explorer with Vim like navigation/shortcuts
+Bonsai is a tui file browser that opens up files in neovim in a new pane. This project
+arose from my own workflow needs - as I used the terminal more and more, I felt I needed
+a better way to run through directories and quickly open files in (neo)vim.
 
 ## info
 Still very much in an early state. This is a personal project that I started

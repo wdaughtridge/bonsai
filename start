@@ -1,3 +1,0 @@
-tmux new -d -s bonsai
-tmux send-keys -t bonsai 'make run' Enter 
-tmux attach-session -t bonsai
