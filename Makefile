@@ -13,7 +13,10 @@ ifeq ($(UNAME_S), Darwin)
 endif
 
 bonsai : $(SRC)
-		$(CXX) $(CXX_FLAGS) $(SRC) -o $(BUILD)/bonsai 
+		$(CXX) $(CXX_FLAGS) $(SRC) -o $(BUILD)/bonsai -Wall -O3
+
+debug : $(SRC)
+		$(CXX) $(CXX_FLAGS) $(SRC) -o $(BUILD)/bonsai -Wall -g
 
 run : 
 		tmux new -d -s bonsai

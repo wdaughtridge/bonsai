@@ -53,6 +53,13 @@ std::vector<std::string> Bonsai::executeWithOutput(const std::string &command) {
   }
 }
 
+void Bonsai::openShell() {
+  std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
+                                .at(0); // get current tmux session name
+
+  system(std::string("tmux split-window -p 25 -t " + sessionName).c_str());
+}
+
 void Bonsai::userCommand() {
   mvaddch(height - 1, 0, '!');
 
@@ -61,9 +68,10 @@ void Bonsai::userCommand() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  for (int i = 0; i < command.size(); i++)
+  for (size_t i = 0; i < command.size(); i++) {
       if (command.at(i) == '"')
-          command.insert(command.begin() + i, '\\');
+          command = command.replace(i, 1, "\"");
+  }
 
   system(std::string("tmux split-window -p 25 -t " + sessionName + " \"cd " +
                      dir + "; " + command +
@@ -375,6 +383,9 @@ void Bonsai::checkInput() {
 
   case '!':
     userCommand();
+
+  case '%':
+    openShell();
 
   default:
     if (((int)input >= (int)'0' || (int)input <= (int)'9') &&

@@ -46,6 +46,7 @@ namespace Bonsai {
     void processSearch();
     void cd(const std::string& path);
     void userCommand();
+    void openShell();
     void jumpToLine(const std::string& input);
     std::string getInput();
     std::string readFile(const std::string& path);
