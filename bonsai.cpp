@@ -61,6 +61,10 @@ void Bonsai::userCommand() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
+  for (int i = 0; i < command.size(); i++)
+      if (command.at(i) == '"')
+          command.insert(command.begin() + i, '\\');
+
   system(std::string("tmux split-window -p 25 -t " + sessionName + " \"cd " +
                      dir + "; " + command +
                      "; echo '[PRESS KEY TO CONTINUE]'; read;\"")
