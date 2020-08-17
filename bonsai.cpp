@@ -61,9 +61,6 @@ void Bonsai::userCommand() {
     system(std::string("tmux split-window -p 25 -t " + sessionName +
                        " \"cd " + dir + "; " + command + "; echo '[PRESS KEY TO CONTINUE]'; read;\"").c_str()); // split window in tmux session and open file in neovim
 
-    // change dir to current dir and execute user's command
-    //system(std::string("cd " + dir + "; " + command).c_str());
-
     // clear the line where command is output
     move(height - 1, 0);
     clrtoeol();
@@ -191,97 +188,101 @@ std::string Bonsai::getInput() {
     std::vector<char> cmd;
     std::vector<std::string> matches;
 
-    int ch = getch();
+    wchar_t ch;
     char lastChar;
 
     size_t lastMatch;
     size_t inputPrevSize;
 
     attron(A_BOLD);
-    while (ch != '\n') {
-        if (ch == 27) { // ESC - cancel input
-            move(height - 1, 0);
-            clrtoeol();
-            move(ycur, xcur);
-            return ""; 
-        }
-        else if (ch == 127) { // BACKSPACE - delete last char
-            int x, y;
-            getyx(stdscr, y, x);
+    while ((ch = getch()) != '\n') {
+        int x, y;
+        getyx(stdscr, y, x);
 
-            if (!cmd.empty()) {
-                mvdelch(y, x - 1);
-                cmd.pop_back();
-            }
-        }
-// TODO: arrow keys are broken
-//        else if (ch == KEY_LEFT) { // ARROW KEYS 
-//            int x, y;
-//            getyx(stdscr, y, x);
-//
-//            if (x < cmd.size()-1)
-//                move(y, x+1);
-//        }
-//        else if (ch == KEY_RIGHT) {
-//            int x, y;
-//            getyx(stdscr, y, x);
-//
-//            if (x > 0)
-//                move(y, x-1);
-//        }
-        else if (ch == 9) { // TAB - autocomplete
-            if ((int)lastChar != 9) { // check to see if new word to autocomplete
-                lastMatch = 0;
+        switch (ch) {
+            case 27: // ESC - cancel input
+                move(height - 1, 0);
+                clrtoeol();
+                move(ycur, xcur);
+                return ""; 
 
-                // find where the last word after the last ' ' or '/' starts
-                size_t lastSpaceOrSlash = 0;
-                for (size_t i = 0; i < cmd.size(); i++) {
-                    if (cmd.at(i) == ' ' || cmd.at(i) == '/')
-                        lastSpaceOrSlash = i + 1;
+            case 127: // BACKSPACE 
+                if (!cmd.empty() && x > 1) {
+                    mvdelch(y, x - 1);
+                    cmd.erase(cmd.begin() + (x - 2));
                 }
+                break;
 
-                inputPrevSize = cmd.size(); // keep track of input size before autocompletion
-                
-                // get all matches for input and print 
-                // first one to screen if exists and add to buffer
-                matches = autoComplete(std::string(std::begin(cmd) + lastSpaceOrSlash, std::end(cmd))); // auto complete
-                if (matches.size()) {
-                    for (size_t i = 0; i < matches.at(0).size(); i++) {
-                        addch(matches.at(0).at(i));
-                        cmd.push_back(matches.at(0).at(i));
-                    }
-                }
-            }
-            else { // already have matches so cycle through the matches
-                if (matches.size()) {
-                    size_t nextMatch = (lastMatch + 1) % matches.size();
-                    size_t lastMatchSize = matches.at(lastMatch).size();
+            case KEY_RIGHT: // ARROW KEYS 
+                if (x <= cmd.size())
+                    move(y, x+1);
+                break;
 
-                    // get rid of the last match
-                    for (size_t i = 0; i < lastMatchSize; i++) {
-                        int x, y;
-                        getyx(stdscr, y, x);
+            case KEY_LEFT:
+                if (x > 1)
+                    move(y, x-1);
+                break;
 
-                        cmd.pop_back();
-                        mvdelch(y, x - 1);
+            case 9: // TAB - autocomplete
+                if (lastChar != 9) { // check to see if new word to autocomplete
+                    lastMatch = 0;
+
+                    // find where the last word after the last ' ' or '/' starts
+                    size_t lastSpaceOrSlash = 0;
+                    for (size_t i = 0; i < cmd.size(); i++) {
+                        if (cmd.at(i) == ' ' || cmd.at(i) == '/')
+                            lastSpaceOrSlash = i + 1;
                     }
 
-                    lastMatch = nextMatch;
-                    // put next match onto screen and in buffer 
-                    for (size_t i = 0; i < matches.at(nextMatch).size(); i++) {
-                        addch(matches.at(nextMatch).at(i));
-                        cmd.push_back(matches.at(nextMatch).at(i));
+                    inputPrevSize = cmd.size(); // keep track of input size before autocompletion
+                    
+                    // get all matches for input and print 
+                    // first one to screen if exists and add to buffer
+                    matches = autoComplete(std::string(std::begin(cmd) + lastSpaceOrSlash, std::end(cmd))); // auto complete
+                    if (matches.size()) {
+                        for (size_t i = 0; i < matches.at(0).size(); i++) {
+                            addch(matches.at(0).at(i));
+                            cmd.push_back(matches.at(0).at(i));
+                        }
                     }
                 }
-            }
-        }
-        else { // simply add a char that is typed
-            addch(ch);
-            cmd.push_back(ch);
+                else { // already have matches so cycle through the matches
+                    if (matches.size()) {
+                        size_t nextMatch = (lastMatch + 1) % matches.size();
+                        size_t lastMatchSize = matches.at(lastMatch).size();
+
+                        // get rid of the last match
+                        for (size_t i = 0; i < lastMatchSize; i++) {
+                            cmd.pop_back();
+                            mvdelch(y, x - 1);
+                        }
+
+                        lastMatch = nextMatch;
+                        // put next match onto screen and in buffer 
+                        for (size_t i = 0; i < matches.at(nextMatch).size(); i++) {
+                            addch(matches.at(nextMatch).at(i));
+                            cmd.push_back(matches.at(nextMatch).at(i));
+                        }
+                    }
+                }
+                break;
+
+            default:
+                if ((x-1) == cmd.size())
+                    addch(ch);
+                else {
+                    insch(ch);
+                    move(y, x+1);
+                }
+
+                if (!cmd.empty())
+                    cmd.insert(cmd.begin() + (x - 1), ch);
+                else
+                    cmd.push_back(ch);
+
         }
 
         lastChar = ch;
-        ch = getch();
     }
     attroff(A_BOLD);
 
@@ -460,6 +461,7 @@ void Bonsai::init() {
     cbreak();
     noecho();
     clear();
+    keypad(stdscr, true);
 
     getmaxyx(stdscr, height, width);
     dir = executeWithOutput("pwd").at(0);
