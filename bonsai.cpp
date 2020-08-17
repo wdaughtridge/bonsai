@@ -70,7 +70,7 @@ void Bonsai::userCommand() {
 
   for (size_t i = 0; i < command.size(); i++) {
       if (command.at(i) == '"')
-          command = command.replace(i, 1, "\"");
+          command = command.replace(i, 1, "'");
   }
 
   system(std::string("tmux split-window -p 25 -t " + sessionName + " \"cd " +
