@@ -69,8 +69,8 @@ void Bonsai::userCommand() {
                                 .at(0); // get current tmux session name
 
   for (size_t i = 0; i < command.size(); i++) {
-      if (command.at(i) == '"')
-          command = command.replace(i, 1, "'");
+      if (static_cast<int>(command.at(i)) == 34)
+          command.replace(i, 1, "'");
   }
 
   system(std::string("tmux split-window -p 25 -t " + sessionName + " \"cd " +
@@ -383,9 +383,11 @@ void Bonsai::checkInput() {
 
   case '!':
     userCommand();
+    break;
 
   case '%':
     openShell();
+    break;
 
   default:
     if (((int)input >= (int)'0' || (int)input <= (int)'9') &&
