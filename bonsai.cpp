@@ -12,12 +12,12 @@ void Bonsai::cd(const std::string &path) {
 std::vector<std::string> Bonsai::ls(const std::string &arg,
                                     const std::string &lsDir = "") {
   std::vector<std::string> files;
-  if (lsDir == "")
+  if (lsDir.empty())
     files = executeWithOutput("cd " + dir + "; ls " + arg);
   else
     files = executeWithOutput("cd " + lsDir + "; ls " + arg);
 
-  files.erase(files.begin());
+  files.erase(files.begin()); // get rid of '.' (current dir) file
   return files;
 }
 
@@ -43,16 +43,17 @@ std::vector<std::string> Bonsai::executeWithOutput(const std::string &command) {
   if (firstNL == std::string::npos)
     return {output};
   else {
-    while (firstNL != std::string::npos) {
+    while (firstNL != std::string::npos) { // separates output by newlines and places into vector
       outputLines.push_back(output.substr(0, firstNL));
       output.replace(0, firstNL + 1, "");
       firstNL = output.find_first_of('\n');
     }
 
-    return outputLines;
+    return outputLines; // return the output of the command
   }
 }
 
+// quick way to open shell in tmux under pane for longer commands
 void Bonsai::openShell() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
@@ -60,6 +61,9 @@ void Bonsai::openShell() {
   system(std::string("tmux split-window -p 25 -t " + sessionName).c_str());
 }
 
+// quick command to execute in shell
+// output is displayed on bottom of screen
+// and closed after key press
 void Bonsai::userCommand() {
   mvaddch(height - 1, 0, '!');
 
@@ -68,10 +72,10 @@ void Bonsai::userCommand() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  for (size_t i = 0; i < command.size(); i++) {
-      if (static_cast<int>(command.at(i)) == 34)
-          command.replace(i, 1, "'");
-  }
+  //for (size_t i = 0; i < command.size(); i++) { // TODO: needs fixing!
+  //  if (static_cast<int>(command.at(i)) == 34) // double quotations were escaping the string quotes below.
+  //    command.replace(i, 1, "'");
+  //}
 
   system(std::string("tmux split-window -p 25 -t " + sessionName + " \"cd " +
                      dir + "; " + command +
@@ -91,9 +95,8 @@ void Bonsai::userCommand() {
 void Bonsai::processCommand() {
   mvaddch(height - 1, 0, ':');
 
-  // make buffer of chars to a string for command
-  std::string command = getInput();
-  if (!command.compare(""))
+  std::string command = getInput(); // get user input
+  if (command.empty())
     return;
 
   // clear the line where command is output
@@ -103,21 +106,24 @@ void Bonsai::processCommand() {
 
   if (command == "q") {
     shouldExit = true;
-  } else if (command.substr(0, 2) ==
-             "cd") { // change directory to specified location
-    cd(command.substr(2));
-  } else if (command == "pb -A") {
+    return;
+  } else if (command.substr(0, 3) ==
+             "cd ") { // change directory to specified location
+    cd(command.substr(3));
+  } else if (command == "pb -A") { // WIP. this puts back all files moved to the trash
     for (const auto &path : trashedFiles) {
       system(std::string("mv ~/.Trash/" +
                          path.substr(path.find_last_of('/') + 1) + " " + path)
                  .c_str());
     }
-  } else if ((int)command.at(0) >= (int)'0' ||
-             (int)command.at(0) <= (int)'9') { // jump to a specific line
+  } else if (command.at(0) >= '0' ||
+             command.at(0) <= '9') { // jump to a specific line
     jumpToLine(command);
   }
 }
 
+// try to convert input to an integer
+// jump to the specified line if so
 void Bonsai::jumpToLine(const std::string &input) {
   int moveTo;
 
@@ -147,28 +153,30 @@ void Bonsai::jumpToLine(const std::string &input) {
   getyx(stdscr, ycur, xcur);
 }
 
+// searches for the closest file on screen to jump to
 void Bonsai::processSearch() {
   mvaddch(height - 1, 0, '/');
 
   std::string searchFor = getInput();
-  if (!searchFor.compare(""))
+  if (searchFor.empty())
     return;
 
   move(height - 1, 0);
   clrtoeol();
 
   int moveTo = ycur;
-  int score = abs(searchFor.compare(output.at(ycur + top)));
+  int score = abs(searchFor.compare(output.at(ycur + top))); // initial score to compare to
 
   // check which file is closest to search word
   for (int i = 0; i < output.size(); i++) {
     int comp = abs(searchFor.compare(output.at(i)));
-    if (comp < score) {
+    if (comp < score) { // if word is closer, store the index for later
       moveTo = i;
       score = comp;
     }
   }
 
+  // perform move operations on screen
   if (moveTo < top) {
     top = moveTo;
     moveTo = 0;
@@ -179,10 +187,12 @@ void Bonsai::processSearch() {
     moveTo = moveTo - top;
   }
 
+  // resume normal cursor position on screen
   move(moveTo, xcur);
   getyx(stdscr, ycur, xcur);
 }
 
+// returns all possibilities for auto complete from a word
 std::vector<std::string> Bonsai::autoComplete(const std::string &input) {
   size_t inputSize = input.size();
   auto filesInDir = ls("-a");
@@ -204,11 +214,11 @@ std::string Bonsai::getInput() {
   std::vector<char> cmd;
   std::vector<std::string> matches;
 
-  wchar_t ch;
-  char lastChar;
+  wchar_t ch; // input from user
+  char lastChar; // last input from user
 
-  size_t lastMatch;
-  size_t inputPrevSize;
+  size_t lastMatch; // for cycling through autocomplete
+  size_t inputPrevSize; // for when autocompleted word sizes differ
 
   attron(A_BOLD);
   while ((ch = getch()) != '\n') {
@@ -268,8 +278,10 @@ std::string Bonsai::getInput() {
           size_t nextMatch = (lastMatch + 1) % matches.size();
           size_t lastMatchSize = matches.at(lastMatch).size();
 
+          int x, y;
           // get rid of the last match
           for (size_t i = 0; i < lastMatchSize; i++) {
+            getyx(stdscr, y, x);
             cmd.pop_back();
             mvdelch(y, x - 1);
           }
@@ -285,6 +297,9 @@ std::string Bonsai::getInput() {
       break;
 
     default:
+      if (ch == '"')
+          ch = '\"';
+
       if ((x - 1) == cmd.size())
         addch(ch);
       else {
