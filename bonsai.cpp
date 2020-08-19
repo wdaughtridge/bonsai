@@ -43,7 +43,8 @@ std::vector<std::string> Bonsai::executeWithOutput(const std::string &command) {
   if (firstNL == std::string::npos)
     return {output};
   else {
-    while (firstNL != std::string::npos) { // separates output by newlines and places into vector
+    while (firstNL != std::string::npos) { // separates output by newlines and
+                                           // places into vector
       outputLines.push_back(output.substr(0, firstNL));
       output.replace(0, firstNL + 1, "");
       firstNL = output.find_first_of('\n');
@@ -67,16 +68,17 @@ void Bonsai::openShell() {
 void Bonsai::userCommand() {
   mvaddch(height - 1, 0, '!');
 
-//  // get command after bang
-//  std::string command = getInput();
+  //  // get command after bang
+  //  std::string command = getInput();
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
   system(std::string("tmux split-window -l 2 -t " + sessionName).c_str());
-//                     + " \"cd " +
-//                     dir + "; " + command +
-//                     "; echo '[PRESS KEY TO CONTINUE]'; read;\"")
-//             .c_str()); // split window in tmux session and open file in neovim
+  //                     + " \"cd " +
+  //                     dir + "; " + command +
+  //                     "; echo '[PRESS KEY TO CONTINUE]'; read;\"")
+  //             .c_str()); // split window in tmux session and open file in
+  //             neovim
 
   // clear the line where command is output
   move(height - 1, 0);
@@ -106,7 +108,8 @@ void Bonsai::processCommand() {
   } else if (command.substr(0, 3) ==
              "cd ") { // change directory to specified location
     cd(command.substr(3));
-  } else if (command == "pb -A") { // WIP. this puts back all files moved to the trash
+  } else if (command ==
+             "pb -A") { // WIP. this puts back all files moved to the trash
     for (const auto &path : trashedFiles) {
       system(std::string("mv ~/.Trash/" +
                          path.substr(path.find_last_of('/') + 1) + " " + path)
@@ -161,7 +164,8 @@ void Bonsai::processSearch() {
   clrtoeol();
 
   int moveTo = ycur;
-  int score = abs(searchFor.compare(output.at(ycur + top))); // initial score to compare to
+  int score = abs(
+      searchFor.compare(output.at(ycur + top))); // initial score to compare to
 
   // check which file is closest to search word
   for (int i = 0; i < output.size(); i++) {
@@ -210,10 +214,10 @@ std::string Bonsai::getInput() {
   std::vector<char> cmd;
   std::vector<std::string> matches;
 
-  wchar_t ch; // input from user
+  wchar_t ch;    // input from user
   char lastChar; // last input from user
 
-  size_t lastMatch; // for cycling through autocomplete
+  size_t lastMatch;     // for cycling through autocomplete
   size_t inputPrevSize; // for when autocompleted word sizes differ
 
   attron(A_BOLD);
@@ -370,15 +374,16 @@ void Bonsai::checkInput() {
   case '\n':
     if (file != "") {
       std::string type = executeWithOutput("file " + dir + "/" + file).at(0);
-      
+
       std::string extension;
       size_t dotExt = file.find_first_of('.');
-      if (dotExt != std::string::npos)  
+      if (dotExt != std::string::npos)
         extension = file.substr(dotExt);
 
       if (type.find("directory") != std::string::npos) {
         cd(file);
-      } else if (extension == ".jpg" || extension == ".png" || extension == ".jpeg") {
+      } else if (extension == ".jpg" || extension == ".png" ||
+                 extension == ".jpeg") {
         system(std::string("open " + dir + "/" + file + " -a Preview").c_str());
       } else {
         std::string sessionName =
