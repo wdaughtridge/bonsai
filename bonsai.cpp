@@ -59,7 +59,7 @@ void Bonsai::openShell() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system(std::string("tmux split-window -p 25 -t " + sessionName).c_str());
+  system(std::string("tmux split-window -c '" + dir + "' -p 25 -t " + sessionName).c_str());
 }
 
 // quick command to execute in shell
@@ -69,16 +69,13 @@ void Bonsai::userCommand() {
   mvaddch(height - 1, 0, '!');
 
   //  // get command after bang
-  //  std::string command = getInput();
+  std::string command = getInput();
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system(std::string("tmux split-window -l 2 -t " + sessionName).c_str());
-  //                     + " \"cd " +
-  //                     dir + "; " + command +
-  //                     "; echo '[PRESS KEY TO CONTINUE]'; read;\"")
-  //             .c_str()); // split window in tmux session and open file in
-  //             neovim
+  system("tmux set-option remain-on-exit on");
+  system(std::string("tmux split-window -c '" + dir + "' -l 10 -t " + sessionName + " '" + command + "'").c_str());
+  system("tmux set-option remain-on-exit off");
 
   // clear the line where command is output
   move(height - 1, 0);
