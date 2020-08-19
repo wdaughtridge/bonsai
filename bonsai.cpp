@@ -73,9 +73,9 @@ void Bonsai::userCommand() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system("tmux set-option remain-on-exit on");
-  system(std::string("tmux split-window -c '" + dir + "' -l 10 -t " + sessionName + " '" + command + "; read'").c_str());
-  system("tmux set-option remain-on-exit off");
+  system(std::string("tmux set-option -t " + sessionName + " remain-on-exit on").c_str());
+  system(std::string("tmux split-window -c '" + dir + "' -l 10 -t " + sessionName + " '" + command + ";'").c_str());
+  system(std::string("tmux set-option -t " + sessionName + " remain-on-exit off").c_str());
 
   // clear the line where command is output
   move(height - 1, 0);
