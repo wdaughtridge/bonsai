@@ -67,20 +67,16 @@ void Bonsai::openShell() {
 void Bonsai::userCommand() {
   mvaddch(height - 1, 0, '!');
 
-  // get command after bang
-  std::string command = getInput();
+//  // get command after bang
+//  std::string command = getInput();
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  //for (size_t i = 0; i < command.size(); i++) { // TODO: needs fixing!
-  //  if (static_cast<int>(command.at(i)) == 34) // double quotations were escaping the string quotes below.
-  //    command.replace(i, 1, "'");
-  //}
-
-  system(std::string("tmux split-window -p 25 -t " + sessionName + " \"cd " +
-                     dir + "; " + command +
-                     "; echo '[PRESS KEY TO CONTINUE]'; read;\"")
-             .c_str()); // split window in tmux session and open file in neovim
+  system(std::string("tmux split-window -l 2 -t " + sessionName).c_str());
+//                     + " \"cd " +
+//                     dir + "; " + command +
+//                     "; echo '[PRESS KEY TO CONTINUE]'; read;\"")
+//             .c_str()); // split window in tmux session and open file in neovim
 
   // clear the line where command is output
   move(height - 1, 0);
@@ -297,8 +293,9 @@ std::string Bonsai::getInput() {
       break;
 
     default:
-      if (ch == '"')
-          ch = '\"';
+      if (ch == '"') { // so the double quotes dont break strings
+        ch = '\"';
+      }
 
       if ((x - 1) == cmd.size())
         addch(ch);
@@ -373,8 +370,16 @@ void Bonsai::checkInput() {
   case '\n':
     if (file != "") {
       std::string type = executeWithOutput("file " + dir + "/" + file).at(0);
+      
+      std::string extension;
+      size_t dotExt = file.find_first_of('.');
+      if (dotExt != std::string::npos)  
+        extension = file.substr(dotExt);
+
       if (type.find("directory") != std::string::npos) {
         cd(file);
+      } else if (extension == ".jpg" || extension == ".png" || extension == ".jpeg") {
+        system(std::string("open " + dir + "/" + file + " -a Preview").c_str());
       } else {
         std::string sessionName =
             executeWithOutput("tmux display-message -p '#S'")
