@@ -59,7 +59,7 @@ void Bonsai::openShell() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system(std::string("tmux split-window -c '" + dir + "' -p 25 -t " + sessionName).c_str());
+  system(std::string("tmux split-window -c '" + dir + "' -p 20 -t " + sessionName).c_str());
 }
 
 // quick command to execute in shell
@@ -73,7 +73,7 @@ void Bonsai::userCommand() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system(std::string("tmux split-window -c '" + dir + "' -l 10 -t " + sessionName + " '" + command + "; read'").c_str());
+  system(std::string("tmux split-window -c '" + dir + "' -p 20 -t " + sessionName + " '" + command + "; read'").c_str());
 
   // clear the line where command is output
   move(height - 1, 0);
