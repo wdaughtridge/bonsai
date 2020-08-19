@@ -74,7 +74,7 @@ void Bonsai::userCommand() {
                                 .at(0); // get current tmux session name
 
   system("tmux set-option remain-on-exit on");
-  system(std::string("tmux split-window -c '" + dir + "' -l 10 -t " + sessionName + " '" + command + "'").c_str());
+  system(std::string("tmux split-window -c '" + dir + "' -l 10 -t " + sessionName + " '" + command + "; read'").c_str());
   system("tmux set-option remain-on-exit off");
 
   // clear the line where command is output
