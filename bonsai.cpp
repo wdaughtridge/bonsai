@@ -59,7 +59,9 @@ void Bonsai::openShell() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system(std::string("tmux split-window -c '" + dir + "' -p 20 -t " + sessionName).c_str());
+  system(
+      std::string("tmux split-window -c '" + dir + "' -p 20 -t " + sessionName)
+          .c_str());
 }
 
 // quick command to execute in shell
@@ -73,7 +75,10 @@ void Bonsai::userCommand() {
   std::string sessionName = executeWithOutput("tmux display-message -p '#S'")
                                 .at(0); // get current tmux session name
 
-  system(std::string("tmux split-window -c '" + dir + "' -p 20 -t " + sessionName + " '" + command + "; read'").c_str());
+  system(std::string("tmux split-window -c '" + dir + "' -p 20 -t " +
+                     sessionName + " '" + command +
+                     "; echo '[Press Any Key To Exit]'; read'")
+             .c_str());
 
   // clear the line where command is output
   move(height - 1, 0);
@@ -318,7 +323,7 @@ std::string Bonsai::getInput() {
 
 // checks whether the user inputs a command or moves cursor. if the
 // user issues a command, the command is then executed.
-void Bonsai::checkInput() {
+void Bonsai::checkKeyboardInput() {
   std::string file;
   char input = getch();
   std::string command;
@@ -386,33 +391,33 @@ void Bonsai::checkInput() {
                 .at(0); // get current tmux session name
         size_t numPanes =
             executeWithOutput("tmux list-panes -t " + sessionName).size();
+
         if (numPanes > 1)
-          system(std::string("cd " + dir + "; tmux send-keys -t " +
-                             sessionName + ".1 ':tabnew " + dir + "/" + file +
-                             "' Enter")
+          system(std::string("tmux send-keys -t " + sessionName +
+                             ".1 ':tabnew " + dir + "/" + file + "' Enter")
                      .c_str());
         else
           system(std::string("tmux split-window -p 75 -h -t " + sessionName +
-                             " \"cd " + dir + "; nvim " + dir + "/" + file +
-                             "\"")
+                             " -c '" + dir + "' \"nvim " + file + "\"")
                      .c_str()); // split window in tmux session and open file in
                                 // neovim
       }
     }
     break;
 
-  case '!':
-    userCommand();
-    break;
-
-  case '%':
-    openShell();
-    break;
+//  case '!':
+//    userCommand();
+//    break;
+//
+//  case '%':
+//    openShell();
+//    break;
 
   default:
     if (((int)input >= (int)'0' || (int)input <= (int)'9') &&
         ((int)lastInput >= (int)'0' || (int)lastInput <= (int)'9'))
-      int donothing = 0; // repeatCmd += std::string(input);
+      // int donothing = 0; // repeatCmd += std::string(input);
+    break;
   }
 
   lastInput = input;
@@ -425,10 +430,15 @@ void Bonsai::checkInput() {
 // the screen in order to print the current directory and any user commands
 void Bonsai::printscr() {
   int y = top;
+  int width = std::stoi(
+      executeWithOutput("tmux list-panes -t bonsai -F \"#{pane_width}\"")
+          .at(0));
+
   for (y = top; y < output.size(); y++) {
     if (y == height + top - 2)
       break;
 
+    // line numbers
     attron(A_BOLD);
     if (y < 10)
       printw(std::string("  " + std::to_string(y) + " ").c_str());
@@ -438,20 +448,25 @@ void Bonsai::printscr() {
       printw(std::string(std::to_string(y) + " ").c_str());
     attroff(A_BOLD);
 
+    std::string file = output.at(y);
+    if ((file.length() + 5) > width) {
+      file = file.substr(0, width - 10);
+      file = file + "...";
+    }
+    file = file + "\n";
+
     if (ycur == y - top) {
       attron(A_UNDERLINE | A_BOLD);
-      printw(std::string(output.at(y) + "\n").c_str());
+      printw(file.c_str());
       attroff(A_UNDERLINE | A_BOLD);
-    } else
-      printw(std::string(output.at(y) + "\n").c_str());
+    } else {
+      printw(file.c_str());
+    }
   }
 
   attron(A_STANDOUT | A_BOLD);
 
   // make sure path does wrap around weirdly
-  int width = std::stoi(
-      executeWithOutput("tmux list-panes -t bonsai -F \"#{pane_width}\"")
-          .at(0));
   if (dir.size() + 3 <= width)
     mvprintw(height - 2, 0, std::string(" > " + dir).c_str());
   else {
@@ -517,7 +532,11 @@ void Bonsai::init() {
 
   getmaxyx(stdscr, height, width);
   dir = executeWithOutput("pwd").at(0);
-  trashDir = "~/.Trash";
+  if (!executeWithOutput("if test -d ~/.Trash; then echo \"exists\"; else echo \"missing\"; fi").at(0).compare("exists")) {
+    trashDir = "~/.Trash";
+  } else if (!executeWithOutput("if test -d ~/.local/share/Trash; then echo \"exists\"; else echo \"missing\"; fi").at(0).compare("exists")) {
+    trashDir = "~/.local/share/Trash";
+  }
 
   std::string welcomeASCII = readFile("bonsaiASCII.txt");
   printw(welcomeASCII.c_str());
@@ -528,7 +547,7 @@ void Bonsai::init() {
 void Bonsai::run() {
   while (!shouldExit) {
     newFrame();
-    checkInput();
+    checkKeyboardInput();
 
     getyx(stdscr, Bonsai::ycur, Bonsai::xcur);
   }

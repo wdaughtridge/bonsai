@@ -17,9 +17,7 @@ debug : $(SRC)
 		$(CXX) $(CXX_FLAGS) $(SRC) -o $(BUILD)/bonsai -g
 
 format : 
-		clang-format -i $(SRC) --style=LLVM
+		clang-format -i $(SRC) *.h --style=LLVM
 
 run : 
-		tmux new -d -s bonsai
-		tmux send-keys -t bonsai C-z './$(BUILD)/bonsai' Enter
-		tmux attach-session -t bonsai
+		./bonsai

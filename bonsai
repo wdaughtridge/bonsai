@@ -1,0 +1,11 @@
+#!/bin/bash
+
+tmux new -d -s bonsai
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    tmux send-keys -t bonsai C-z './build-linux/bonsai' Enter
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    tmux send-keys -t bonsai C-z './build-macos/bonsai' Enter
+fi
+
+tmux attach-session -t bonsai
