@@ -16,6 +16,9 @@ bonsai : $(SRC)
 debug : $(SRC)
 		$(CXX) $(CXX_FLAGS) $(SRC) -o $(BUILD)/bonsai -g
 
+install :
+		
+
 format : 
 		clang-format -i $(SRC) *.h --style=LLVM
 
